@@ -1,6 +1,8 @@
 use Mist460_RDB_Collins; 
 
--- Order matters (Why?)
+
+IF OBJECT_ID('Registration') IS NOT NULL DROP TABLE Registration;
+IF OBJECT_ID('CoursePrereq') IS NOT NULL DROP TABLE CoursePrereq;
 IF OBJECT_ID('Section') IS NOT NULL DROP TABLE Section;
 IF OBJECT_ID('Instructor') IS NOT NULL DROP TABLE Instructor;
 IF OBJECT_ID('Course') IS NOT NULL DROP TABLE Course;
@@ -22,7 +24,7 @@ CREATE TABLE AppUser (
     PhoneNumber     NVARCHAR(20)   NULL,
     PasswordHash    VARBINARY(256)  NOT NULL,
     UserRole        NVARCHAR(20)   NOT NULL
-        CONSTRAINT CK_AppUser_UserRole CHECK (UserRole IN (N'Student', N'Advisor',N'Alum'))
+        CONSTRAINT CK_AppUser_UserRole CHECK (UserRole IN (N'Student', N'Advisor', N'Alum'))
 );
 GO
 
@@ -34,11 +36,11 @@ CREATE TABLE Student (
     TotalCreditsCompleted   INT NOT NULL
         CONSTRAINT DF_Student_Credits DEFAULT (0)
         CONSTRAINT CK_Student_TCC CHECK (TotalCreditsCompleted >= 0),
-    GraduationSemesterYear NVARCHAR(25) not null,
-    OverallGPA decimal(3,2) not null 
-        constraint DF_Student_OverallGPA DEFAULT 0.00,
-    MajorGPA decimal(3,2) not null 
-        constraint DF_Student_MajorGPA DEFAULT 0.00
+    GraduationSemesterYear NVARCHAR(25) NOT NULL,
+    OverallGPA DECIMAL(3,2) NOT NULL 
+        CONSTRAINT DF_Student_OverallGPA DEFAULT 0.00,
+    MajorGPA DECIMAL(3,2) NOT NULL 
+        CONSTRAINT DF_Student_MajorGPA DEFAULT 0.00
 );
 GO
 
@@ -70,17 +72,31 @@ CREATE TABLE Course (
     Title           NVARCHAR(200)  NOT NULL,
     CourseDescription     NVARCHAR(MAX)  NULL,
     Credits         DECIMAL(4,1)   NOT NULL CONSTRAINT DF_Course_Credits DEFAULT (3.0),
-    Capacity int not null default(0),
+    Capacity        INT NOT NULL DEFAULT(0),
     CONSTRAINT UK_Course_SubjectNumber UNIQUE (SubjectCode, CourseNumber),
     CONSTRAINT CK_Course_Credits CHECK (Credits > 0 AND Credits <= 12.0)
 );
 GO
 
-create table Instructor (
-    InstructorID int identity(1,1) not null,
-    FirstName nvarchar(50) not null,
-    LastName nvarchar(50) not null,
-    constraint pkInstructor primary key(InstructorID)
+
+CREATE TABLE CoursePrereq (
+    CourseID    INT NOT NULL,  
+    PrereqID    INT NOT NULL,  
+    MinGrade    NVARCHAR(2) NULL,  
+    CONSTRAINT PK_CoursePrereq PRIMARY KEY (CourseID, PrereqID),
+    CONSTRAINT FK_CoursePrereq_Course FOREIGN KEY (CourseID)
+        REFERENCES Course(CourseID) ON DELETE NO ACTION,
+    CONSTRAINT FK_CoursePrereq_Prereq FOREIGN KEY (PrereqID)
+        REFERENCES Course(CourseID) ON DELETE NO ACTION,
+    CONSTRAINT CK_CoursePrereq_NotSelf CHECK (CourseID <> PrereqID) 
+);
+GO
+
+CREATE TABLE Instructor (
+    InstructorID INT IDENTITY(1,1) NOT NULL,
+    FirstName NVARCHAR(50) NOT NULL,
+    LastName NVARCHAR(50) NOT NULL,
+    CONSTRAINT PK_Instructor PRIMARY KEY(InstructorID)
 );
 GO
 
@@ -90,7 +106,7 @@ CREATE TABLE Section (
     InstructorID                INT NOT NULL,
     CRN                         NCHAR(5) NOT NULL,
     SectionSemester      NVARCHAR(12) NOT NULL,
-    SectionYear          int NOT NULL,
+    SectionYear          INT NOT NULL,
     SectionNumber               NVARCHAR(10) NULL,
     RemainingOpenings           INT NOT NULL CONSTRAINT DF_Section_Seats DEFAULT (0),
     SectionAverageRating DECIMAL(4,2) NOT NULL CONSTRAINT DF_Section_Avg DEFAULT (0.0),
@@ -100,6 +116,30 @@ CREATE TABLE Section (
         REFERENCES Instructor(InstructorID) ON DELETE NO ACTION,
     CONSTRAINT CK_Section_Sem CHECK (SectionSemester IN (N'Spring',N'Summer',N'Fall',N'Winter')),
     CONSTRAINT CK_Section_Seats CHECK (RemainingOpenings >= 0),
-    CONSTRAINT CK_CourseOffering_Avg CHECK (SectionAverageRating >= 0 AND SectionAverageRating <= 5)
+    CONSTRAINT CK_Section_Avg CHECK (SectionAverageRating >= 0 AND SectionAverageRating <= 5)
 );
+GO
+
+
+CREATE TABLE Registration (
+    RegistrationID      INT IDENTITY(1,1) CONSTRAINT PK_Registration PRIMARY KEY,
+    StudentID           INT NOT NULL,
+    SectionID           INT NOT NULL,
+    RegistrationDate    DATE NOT NULL CONSTRAINT DF_Registration_Date DEFAULT GETDATE(),
+    Semester            NVARCHAR(12) NOT NULL,
+    Year                INT NOT NULL,
+    CONSTRAINT FK_Registration_Student FOREIGN KEY (StudentID)
+        REFERENCES Student(StudentID) ON DELETE CASCADE,
+    CONSTRAINT FK_Registration_Section FOREIGN KEY (SectionID)
+        REFERENCES Section(SectionID) ON DELETE CASCADE,
+    CONSTRAINT UK_Registration_StudentSection UNIQUE (StudentID, SectionID), 
+    CONSTRAINT CK_Registration_Semester CHECK (Semester IN (N'Spring',N'Summer',N'Fall',N'Winter'))
+);
+GO
+
+
+SELECT TABLE_NAME 
+FROM INFORMATION_SCHEMA.TABLES 
+WHERE TABLE_TYPE = 'BASE TABLE'
+ORDER BY TABLE_NAME;
 GO
