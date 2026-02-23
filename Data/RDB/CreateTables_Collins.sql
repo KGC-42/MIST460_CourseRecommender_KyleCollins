@@ -1,4 +1,4 @@
-use Mist460_RDB_Collins; 
+use MIST460_RDB_Lastname; 
 
 -- Order matters (Why?)
 
@@ -132,9 +132,9 @@ create table CoursePrerequisite (
         CONSTRAINT PK_CoursePrerequisite PRIMARY KEY,
     CourseID int not null
         CONSTRAINT FK_CP_Course FOREIGN KEY (CourseID) REFERENCES Course(CourseID),-- ON DELETE CASCADE,
-    PrerequisiteCourseID int not null
-        CONSTRAINT FK_CP_PrerequisiteCourse FOREIGN KEY (PrerequisiteCourseID) REFERENCES Course(CourseID),-- ON DELETE CASCADE,
-    constraint UK_CoursePrerequisite UNIQUE(CourseID, PrerequisiteCourseID),
+    PrerequisiteID int not null
+        CONSTRAINT FK_CP_PrerequisiteCourse FOREIGN KEY (PrerequisiteID) REFERENCES Course(CourseID),-- ON DELETE CASCADE,
+    constraint UK_CoursePrerequisite UNIQUE(CourseID, PrerequisiteID),
     MinGradeRequired nchar(2) not null
         constraint CK_CoursePrerequisite_Grade CHECK (MinGradeRequired IN (N'A', N'B', N'C', N'D'))  
 );
@@ -166,6 +166,7 @@ create table RegistrationSection (
     EnrollmentStatus NVARCHAR(20) not null
         constraint CK_Enrollment_Status CHECK (EnrollmentStatus IN (N'Enrolled', N'Waitlisted', N'Dropped', N'Completed')),
     LetterGrade nchar(2) null
-        constraint CK_RegistrationSection_Grade CHECK (LetterGrade IN (N'A', N'B', N'C', N'D', N'F', N'W', null))
+        constraint CK_RegistrationSection_Grade CHECK (LetterGrade IN (N'A', N'B', N'C', N'D', N'F', N'W', null)),
+    LastUpdate datetime not null default getdate()
 );
 
