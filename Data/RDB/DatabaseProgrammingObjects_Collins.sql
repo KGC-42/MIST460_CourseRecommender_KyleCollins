@@ -44,3 +44,71 @@ WHERE c1.SubjectCode = @SubjectCode
   AND c1.CourseNumber = @CourseNumber
 ORDER BY c2.SubjectCode, c2.CourseNumber;
 GO
+
+USE Mist460_RDB_Collins;
+GO
+
+DECLARE @StudentID INT = 1;  -- Change to test different students
+DECLARE @SubjectCode NVARCHAR(10) = N'MIST';
+DECLARE @CourseNumber NVARCHAR(10) = N'460';
+
+-- Get the course we're checking
+DECLARE @CourseID INT;
+SELECT @CourseID = CourseID 
+FROM Course 
+WHERE SubjectCode = @SubjectCode AND CourseNumber = @CourseNumber;
+
+-- Check if student has completed all prerequisites
+SELECT 
+    @SubjectCode + N' ' + @CourseNumber AS CourseChecking,
+    c.SubjectCode + N' ' + c.CourseNumber AS PrerequisiteCourse,
+    c.Title AS PrerequisiteTitle,
+    cp.MinGrade AS MinGradeRequired,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 
+            FROM Registration r
+            INNER JOIN Section s ON r.SectionID = s.SectionID
+            WHERE r.StudentID = @StudentID 
+              AND s.CourseID = c.CourseID
+        ) THEN N'Completed'
+        ELSE N'Not Completed'
+    END AS Status
+FROM CoursePrereq cp
+INNER JOIN Course c ON cp.PrereqID = c.CourseID
+WHERE cp.CourseID = @CourseID
+ORDER BY c.SubjectCode, c.CourseNumber;
+
+-- Summary: Can student register?
+SELECT 
+    CASE 
+        WHEN NOT EXISTS (
+            SELECT 1 
+            FROM CoursePrereq cp
+            WHERE cp.CourseID = @CourseID
+            AND cp.PrereqID NOT IN (
+                SELECT DISTINCT s.CourseID
+                FROM Registration r
+                INNER JOIN Section s ON r.SectionID = s.SectionID
+                WHERE r.StudentID = @StudentID
+            )
+        ) THEN N'Yes - All prerequisites completed'
+        ELSE N'No - Missing prerequisites'
+    END AS CanRegister;
+GO
+```
+
+---
+
+# WHAT THIS DOES
+
+**Part 1:** Shows each prerequisite and whether the student completed it
+**Part 2:** Final Yes/No answer - can the student register?
+
+**Example output:**
+```
+PrerequisiteCourse | Status
+MIST 360          | Completed
+CS 101            | Not Completed
+
+CanRegister: No - Missing prerequisites
