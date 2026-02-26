@@ -1,4 +1,4 @@
-use MIST460_RDB_Lastname; 
+use Mist460_RDB_Collins; 
 
 -- Order matters (Why?)
 
