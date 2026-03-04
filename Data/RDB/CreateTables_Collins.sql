@@ -1,5 +1,6 @@
 use Mist460_RDB_Collins; 
 
+
 -- Order matters (Why?)
 
 IF OBJECT_ID('RegistrationSection') IS NOT NULL DROP TABLE RegistrationSection;
