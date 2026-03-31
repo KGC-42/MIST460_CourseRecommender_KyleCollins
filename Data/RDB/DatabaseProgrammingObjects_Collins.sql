@@ -328,3 +328,36 @@ GO
 --EXEC procHasStudentMetPrerequisitesForCourse @StudentID = 3, @SubjectCode = 'MIST', @CourseNumber = '460';
 
 go
+
+-- Stored Procedure: Validate User
+CREATE OR ALTER PROCEDURE procValidateUser
+    @username NVARCHAR(320),
+    @password NVARCHAR(100)
+AS
+BEGIN
+    SELECT 
+        AppUserID,
+        FirstName + ' ' + LastName AS FullName
+    FROM AppUser
+    WHERE Email = @username
+      AND PasswordHash = CONVERT(VARBINARY(64), @password, 1)
+END;
+GO
+
+
+-- Test the procedure
+EXECUTE procValidateUser
+    @username = 'jmcdan8@mix.wvu.edu',
+    @password = '0x01';
+GO
+
+
+-- View users
+SELECT 
+    AppUserID,
+    FirstName,
+    LastName,
+    Email,
+    PasswordHash
+FROM AppUser;
+GO
