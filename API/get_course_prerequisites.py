@@ -24,4 +24,7 @@ def get_course_prerequisites(subject_code: str, course_number: str):
         return {"data": results}
     
     except Exception as e:
+        print(f"ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
