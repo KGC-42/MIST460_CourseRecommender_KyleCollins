@@ -14,6 +14,7 @@ IF OBJECT_ID('Alum')           IS NOT NULL DROP TABLE Alum;
 IF OBJECT_ID('Advisor')     IS NOT NULL DROP TABLE Advisor;
 IF OBJECT_ID('Student')        IS NOT NULL DROP TABLE Student;
 IF OBJECT_ID('AppUser')        IS NOT NULL DROP TABLE AppUser;
+IF OBJECT_ID('Job') IS NOT NULL DROP TABLE Job;
 
 -- create CoursePrerequisite table
 -- create Registration
@@ -77,6 +78,14 @@ CREATE TABLE Alum (
 );
 GO
 
+CREATE TABLE Job (
+    JobID           INT IDENTITY(1,1) CONSTRAINT PK_Job PRIMARY KEY,
+    JobTitle  NVARCHAR(MAX) NOT NULL,
+    Industry        NVARCHAR(100) NULL,
+	JobDescription NVARCHAR(MAX) NULL
+);
+
+GO
 
 CREATE TABLE Major (
     MajorID     INT IDENTITY(1,1) CONSTRAINT PK_Major PRIMARY KEY,
