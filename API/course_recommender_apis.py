@@ -1,21 +1,24 @@
-from fastapi import FastAPI
-from get_course_sections_for_specified_course import router as sections_router
-from get_course_prerequisites import router as prerequisites_router
-from validate_user import router as validate_router
-from has_student_met_prerequisites_for_course import router as student_prereq_router
+import streamlit as st
+import importlib
+import sys
+import os
 
-app = FastAPI(title="MIST 460 Course Recommender API - Kyle Collins")
+sys.path.append(os.path.dirname(__file__))
 
-# Include all routers
-app.include_router(sections_router, prefix="/api", tags=["courses"])
-app.include_router(prerequisites_router, prefix="/api", tags=["courses"])
-app.include_router(validate_router, prefix="/api", tags=["authentication"])
-app.include_router(student_prereq_router, prefix="/api", tags=["students"])
+st.title("Course Recommender System")
 
-@app.get("/")
-def read_root():
-    return {"message": "MIST 460 Course Recommender API", "student": "Kyle Collins"}
+api_end_point = st.selectbox(
+    "Select a course recommendation functionality:",
+    (
+        "Get Course Sections for Specified Course",
+        "Get Course Prerequisites",
+        "Check Student Prerequisites"
+    )
+)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+if api_end_point == "Get Course Sections for Specified Course":
+    import get_course_sections_for_specified_course_ui
+elif api_end_point == "Get Course Prerequisites":
+    import get_course_prerequisites_ui
+elif api_end_point == "Check Student Prerequisites":
+    import has_student_met_prerequisites_for_course_ui
