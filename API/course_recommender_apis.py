@@ -1,23 +1,17 @@
-import streamlit as st
-import sys
-import os
+from fastapi import FastAPI
+from get_course_sections_for_specified_course import router as sections_router
+from get_course_prerequisites import router as prerequisites_router
+from validate_user import router as validate_router
+from has_student_met_prerequisites_for_course import router as student_prereq_router
 
-sys.path.append(os.path.dirname(__file__))
+app = FastAPI(title="MIST 460 Course Recommender API - Kyle Collins")
 
-st.title("Course Recommender System")
+# Include all routers
+app.include_router(sections_router, prefix="/api", tags=["courses"])
+app.include_router(prerequisites_router, prefix="/api", tags=["courses"])
+app.include_router(validate_router, prefix="/api", tags=["authentication"])
+app.include_router(student_prereq_router, prefix="/api", tags=["students"])
 
-api_end_point = st.selectbox(
-    "Select a course recommendation functionality:",
-    (
-        "Get Course Sections for Specified Course",
-        "Get Course Prerequisites",
-        "Check Student Prerequisites"
-    )
-)
-
-if api_end_point == "Get Course Sections for Specified Course":
-    exec(open(os.path.join(os.path.dirname(__file__), "get_course_sections_for_specified_course_ui.py")).read())
-elif api_end_point == "Get Course Prerequisites":
-    exec(open(os.path.join(os.path.dirname(__file__), "get_course_prerequisites_ui.py")).read())
-elif api_end_point == "Check Student Prerequisites":
-    exec(open(os.path.join(os.path.dirname(__file__), "has_student_met_prerequisites_for_course_ui.py")).read())
+@app.get("/")
+def read_root():
+    return {"message": "MIST 460 Course Recommender API", "student": "Kyle Collins"}
