@@ -1,5 +1,4 @@
 import streamlit as st
-import importlib
 import sys
 import os
 
@@ -17,8 +16,8 @@ api_end_point = st.selectbox(
 )
 
 if api_end_point == "Get Course Sections for Specified Course":
-    import get_course_sections_for_specified_course_ui
+    exec(open(os.path.join(os.path.dirname(__file__), "get_course_sections_for_specified_course_ui.py")).read())
 elif api_end_point == "Get Course Prerequisites":
-    import get_course_prerequisites_ui
+    exec(open(os.path.join(os.path.dirname(__file__), "get_course_prerequisites_ui.py")).read())
 elif api_end_point == "Check Student Prerequisites":
-    import has_student_met_prerequisites_for_course_ui
+    exec(open(os.path.join(os.path.dirname(__file__), "has_student_met_prerequisites_for_course_ui.py")).read())
