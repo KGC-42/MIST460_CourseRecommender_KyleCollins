@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # API endpoint
-API_URL = "http://localhost:8000/api/has-student-met-prerequisites"
+API_URL = "https://mist460-api-collins-c3dhhkhsapcse8dh.canadacentral-01.azurewebsites.net/api/has-student-met-prerequisites"
 
 st.title("Student Prerequisites Checker")
 st.write("Check if a student has met prerequisites for a course")

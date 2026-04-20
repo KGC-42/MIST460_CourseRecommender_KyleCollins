@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # API endpoint
-API_URL = "http://localhost:8000/api/course-sections"
+API_URL = "https://mist460-api-collins-c3dhhkhsapcse8dh.canadacentral-01.azurewebsites.net/api/course-sections"
 
 st.title("Course Sections Finder")
 st.write("Find sections offered this semester")
