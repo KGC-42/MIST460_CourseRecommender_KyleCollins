@@ -18,14 +18,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Create deployment package
         run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r API/requirements.txt
-
-      - name: Zip artifact
-        run: cd API && zip -r ../release.zip .
+          cd API
+          pip install -r requirements.txt --target ./packages
+          cp -r packages/* .
+          rm -rf packages
+          zip -r ../release.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
