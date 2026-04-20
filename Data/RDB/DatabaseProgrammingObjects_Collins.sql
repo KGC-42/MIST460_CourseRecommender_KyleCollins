@@ -27,7 +27,26 @@ IF OBJECT_ID('trgDecreaseSectionSeats') is NOT NULL
 GO
 
 create or alter procedure procGetAllCourses
+AS
+BEGIN
+    Select CourseID. CourseDescription
+    From Course;
+    End;
 
+
+    GO
+
+CREATE OR ALTER PROCEDURE procInsertChunk
+(
+    @CourseChunk NVARCHAR(MAX),
+    @ChunkEmbedding VARBINARY(1555),
+    @CourseID INT
+)
+AS
+BEGIN
+    INSERT INTO Chunks (CourseChunk, ChunkEmbedding, CourseID)
+    VALUES (@CourseChunk, @ChunkEmbedding, @CourseID);
+END;
 -- Database Programming Objects (Stored Procedures, User-Defined Functions UDF -> Scalar, Table-valued, Triggers)
 
 -- 1. What are the sections of a specific course (optional entry) offered this semester (spring 2026)?

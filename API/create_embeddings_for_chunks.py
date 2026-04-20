@@ -1,78 +1,42 @@
-import pyodbc
+from get_db_connection import get_db_connection
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
 import os
 import json
 from dotenv import load_dotenv
-from openai import OpenAI
 
-# LangChain text splitter
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# Load env variables
 load_dotenv()
-
-# OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-
-def get_db_connection():
-    return pyodbc.connect(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=YOUR_SERVER_NAME;"
-        "DATABASE=YOUR_DATABASE_NAME;"
-        "Trusted_Connection=yes;"
-    )
-
-
-def get_embeddings_from_openai(text):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text
-    )
-    return response.data[0].embedding
-
 
 def create_embeddings_for_chunks():
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(as_dict=True)
 
-    # 🔹 Initialize text splitter
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    )
+    embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
 
-    # 🔹 Get courses
     cursor.execute("EXEC procGetAllCourses")
-    courses = cursor.fetchall()
+    all_courses = cursor.fetchall()
 
-    for course in courses:
-        course_id = course.CourseID
-        course_text = course.CourseDescription
+    for each_course in all_courses:
+        course_id = each_course['CourseID']
+        course_description = each_course['CourseDescription']
 
-        print(f"Processing CourseID: {course_id}")
+        chunks_for_each_course = text_splitter.split_text(course_description)
+        embeddings_for_chunks = embedding_model.embed_documents(chunks_for_each_course)
 
-        # 🔹 Split into smaller chunks
-        split_chunks = text_splitter.split_text(course_text)
-
-        for chunk in split_chunks:
-            # 🔹 Generate embedding
-            embedding = get_embeddings_from_openai(chunk)
-
-            # 🔹 Convert to binary
-            embedding_bytes = json.dumps(embedding).encode('utf-8')
-
-            # 🔹 Insert into DB
+        for course_chunk, chunk_embedding in zip(chunks_for_each_course, embeddings_for_chunks):
+            embedding_json = json.dumps(chunk_embedding)
             cursor.execute(
-                "EXEC procInsertChunk ?, ?, ?",
-                chunk,
-                embedding_bytes,
-                course_id
+                "EXEC procInsertChunk @ChunkText=%s, @Embedding=%s, @CourseID=%s",
+                (course_chunk, embedding_json, course_id)
             )
+
+        print(f"Embeddings created for CourseID: {course_id}")
 
     conn.commit()
     cursor.close()
     conn.close()
-
+    print("All embeddings created and stored in the database.")
 
 if __name__ == "__main__":
     create_embeddings_for_chunks()
