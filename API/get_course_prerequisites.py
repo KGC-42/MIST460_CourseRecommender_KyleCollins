@@ -10,10 +10,7 @@ def get_course_prerequisites(subject_code: str, course_number: str):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute(
-            "EXEC procGetCoursePrerequisites @SubjectCode=?, @CourseNumber=?",
-            (subject_code, course_number)
-        )
+        cursor.execute("{Call procGetCoursePrerequisites (?, ?)}",(subject_code, course_number))
         
         columns = [column[0] for column in cursor.description]
         results = []

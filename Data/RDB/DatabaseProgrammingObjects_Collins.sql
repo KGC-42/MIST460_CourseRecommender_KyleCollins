@@ -25,6 +25,9 @@ IF OBJECT_ID('trgDecreaseSectionSeats') is NOT NULL
 -- Need days / times for sections, Location
 
 GO
+
+create or alter procedure procGetAllCourses
+
 -- Database Programming Objects (Stored Procedures, User-Defined Functions UDF -> Scalar, Table-valued, Triggers)
 
 -- 1. What are the sections of a specific course (optional entry) offered this semester (spring 2026)?
