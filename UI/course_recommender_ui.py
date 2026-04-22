@@ -11,7 +11,8 @@ api_end_point = st.selectbox(
     (
         "Get Course Sections for Specified Course",
         "Get Course Prerequisites",
-        "Check Student Prerequisites"
+        "Check Student Prerequisites",
+        "Get Course Recommendations for Selected Job"
     )
 )
 
@@ -21,3 +22,5 @@ elif api_end_point == "Get Course Prerequisites":
     exec(open(os.path.join(os.path.dirname(__file__), "get_course_prerequisites_ui.py")).read())
 elif api_end_point == "Check Student Prerequisites":
     exec(open(os.path.join(os.path.dirname(__file__), "has_student_met_prerequisites_for_course_ui.py")).read())
+elif api_end_point == "Get Course Recommendations for Selected Job":
+    exec(open(os.path.join(os.path.dirname(__file__), "get_course_recommendations_for_selected_job_ui.py")).read())

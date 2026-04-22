@@ -29,23 +29,55 @@ GO
 create or alter procedure procGetAllCourses
 AS
 BEGIN
-    Select CourseID. CourseDescription
-    From Course;
-    End;
+    SELECT CourseID, CourseDescription
+    FROM Course;
+END;
 
+GO
 
-    GO
+IF OBJECT_ID('CourseChunk') IS NULL
+BEGIN
+    CREATE TABLE CourseChunk (
+        ChunkID   INT IDENTITY(1,1) CONSTRAINT PK_CourseChunk PRIMARY KEY,
+        ChunkText NVARCHAR(MAX) NOT NULL,
+        Embedding NVARCHAR(MAX) NOT NULL,
+        CourseID  INT NOT NULL
+            CONSTRAINT FK_CourseChunk_Course FOREIGN KEY (CourseID)
+            REFERENCES Course(CourseID) ON DELETE CASCADE
+    );
+END;
+
+GO
 
 CREATE OR ALTER PROCEDURE procInsertChunk
 (
-    @CourseChunk NVARCHAR(MAX),
-    @ChunkEmbedding VARBINARY(1555),
-    @CourseID INT
+    @ChunkText NVARCHAR(MAX),
+    @Embedding NVARCHAR(MAX),
+    @CourseID  INT
 )
 AS
 BEGIN
-    INSERT INTO Chunks (CourseChunk, ChunkEmbedding, CourseID)
-    VALUES (@CourseChunk, @ChunkEmbedding, @CourseID);
+    INSERT INTO CourseChunk (ChunkText, Embedding, CourseID)
+    VALUES (@ChunkText, @Embedding, @CourseID);
+END;
+
+GO
+
+CREATE OR ALTER PROCEDURE procGetAllCourseChunks
+AS
+BEGIN
+    SELECT
+        CC.ChunkID,
+        CC.ChunkText,
+        CC.Embedding,
+        CC.CourseID,
+        C.SubjectCode,
+        C.CourseNumber,
+        C.Title,
+        C.CourseDescription,
+        C.Credits
+    FROM CourseChunk CC
+        INNER JOIN Course C ON CC.CourseID = C.CourseID;
 END;
 -- Database Programming Objects (Stored Procedures, User-Defined Functions UDF -> Scalar, Table-valued, Triggers)
 
