@@ -7,9 +7,9 @@ router = APIRouter()
 def has_student_met_prerequisites(student_id: int, subject_code: str, course_number: str):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(as_dict=True)
         cursor.execute(
-            "EXEC procHasStudentMetPrerequisitesForCourse @StudentID=?, @SubjectCode=?, @CourseNumber=?",
+            "EXEC procHasStudentMetPrerequisitesForCourse @StudentID=%s, @SubjectCode=%s, @CourseNumber=%s",
             (student_id, subject_code, course_number)
         )
         rows = cursor.fetchall()

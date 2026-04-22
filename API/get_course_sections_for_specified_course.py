@@ -7,9 +7,9 @@ router = APIRouter()
 def get_course_sections(subject_code: str = None, course_number: str = None):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(as_dict=True)
         cursor.execute(
-            "EXEC procGetCourseSectionsForSpecifiedCourse @SubjectCode=?, @CourseNumber=?",
+            "EXEC procGetCourseSectionsForSpecifiedCourse @SubjectCode=%s, @CourseNumber=%s",
             (subject_code, course_number)
         )
         rows = cursor.fetchall()
