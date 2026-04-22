@@ -12,10 +12,8 @@ def get_course_sections(subject_code: str = None, course_number: str = None):
             "EXEC procGetCourseSectionsForSpecifiedCourse @SubjectCode=%s, @CourseNumber=%s",
             (subject_code, course_number)
         )
-        rows = cursor.fetchall()
+        data = cursor.fetchall()
         conn.close()
-        columns = [col[0] for col in cursor.description] if cursor.description else []
-        data = [dict(zip(columns, row)) for row in rows]
         return {"data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

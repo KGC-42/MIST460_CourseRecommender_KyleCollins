@@ -12,10 +12,8 @@ def has_student_met_prerequisites(student_id: int, subject_code: str, course_num
             "EXEC procHasStudentMetPrerequisitesForCourse @StudentID=%s, @SubjectCode=%s, @CourseNumber=%s",
             (student_id, subject_code, course_number)
         )
-        rows = cursor.fetchall()
+        missing = cursor.fetchall()
         conn.close()
-        columns = [col[0] for col in cursor.description] if cursor.description else []
-        missing = [dict(zip(columns, row)) for row in rows]
         return {
             "met_prerequisites": len(missing) == 0,
             "missing_prerequisites": missing
