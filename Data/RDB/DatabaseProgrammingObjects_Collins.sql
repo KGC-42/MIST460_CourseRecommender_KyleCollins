@@ -417,38 +417,28 @@ FROM AppUser;
 GO
 
 CREATE OR ALTER PROCEDURE procGetCourseRecommendationsForSelectedJob
-    @JobDescription VECTOR(1536),
     @Semester NVARCHAR(12) = null,
     @Year INT = null
 AS
 BEGIN
-    SELECT C.CourseID, Evidence, Distance, Title, SubjectCode, CourseNumber, CourseDescription, SectionID,
-        SectionSemester, SectionYear, RemainingOpenings, CRN, SectionNumber
-    FROM fnGetCourseRecommendationsForSelectedJob(@JobDescription) as F
-    JOIN Course C ON F.CourseID = C.CourseID
+    SELECT
+        C.CourseID,
+        CC.ChunkText AS Evidence,
+        CC.Embedding,
+        C.Title,
+        C.SubjectCode,
+        C.CourseNumber,
+        C.CourseDescription,
+        S.SectionID,
+        S.SectionSemester,
+        S.SectionYear,
+        S.RemainingOpenings,
+        S.CRN,
+        S.SectionNumber
+    FROM CourseChunk CC
+    JOIN Course C ON CC.CourseID = C.CourseID
     JOIN Section S ON S.CourseID = C.CourseID
-    WHERE (@Semester is null OR S.SectionSemester = @Semester)
-    AND (@Year is null OR S.SectionYear = @Year)
+    WHERE (@Semester IS NULL OR S.SectionSemester = @Semester)
+      AND (@Year IS NULL OR S.SectionYear = @Year);
 END
-
 GO
-
-CREATE OR ALTER FUNCTION fnGetCourseRecommendationsForSelectedJob
-(
-    @JobDescriptionEmbedding VECTOR(1536)
-)
-RETURNS @RecommendedCourses TABLE
-(
-    CourseID INT,
-    Evidence NVARCHAR(MAX),
-    Distance FLOAT
-)
-AS
-BEGIN
-    INSERT INTO @RecommendedCourses
-    SELECT TOP 5 CourseID, CourseChunk as Evidence,
-        VECTOR_DISTANCE('cosine', ChunkEmbedding, @JobDescriptionEmbedding) AS Distance
-    FROM Chunks
-    ORDER BY Distance desc;
-    RETURN;
-END
