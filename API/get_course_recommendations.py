@@ -1,10 +1,9 @@
 import json
-import math
 import os
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query
-from langchain_openai import OpenAIEmbeddings
+from openai import OpenAI
 
 from get_db_connection import get_db_connection
 
@@ -12,64 +11,68 @@ load_dotenv()
 
 router = APIRouter()
 
-_embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
-
-
-def _cosine_similarity(a, b):
-    dot = 0.0
-    norm_a = 0.0
-    norm_b = 0.0
-    for x, y in zip(a, b):
-        dot += x * y
-        norm_a += x * x
-        norm_b += y * y
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 0.0
-    return dot / (math.sqrt(norm_a) * math.sqrt(norm_b))
+EMBEDDING_MODEL = "text-embedding-3-small"
+_openai_client = OpenAI()
 
 
 @router.get("/course-recommendations")
 def get_course_recommendations(
     job_description: str = Query(..., min_length=1, description="Job description to match against course catalog"),
-    top_k: int = Query(5, ge=1, le=20)
+    top_k: int = Query(5, ge=1, le=20),
+    semester: str | None = Query(None, description="Optional semester filter (e.g. 'Spring')"),
+    year: int | None = Query(None, description="Optional year filter (e.g. 2026)")
 ):
     try:
-        query_embedding = _embedding_model.embed_query(job_description)
+        embedding_response = _openai_client.embeddings.create(
+            input=job_description,
+            model=EMBEDDING_MODEL
+        )
+        query_embedding = embedding_response.data[0].embedding
+        embedding_vector_literal = json.dumps(query_embedding)
 
         conn = get_db_connection()
         cursor = conn.cursor(as_dict=True)
-        cursor.execute("EXEC procGetAllCourseChunks")
-        chunks = cursor.fetchall()
+        cursor.execute(
+            "EXEC procGetCourseRecommendationsForSelectedJob "
+            "@JobDescription=%s, @Semester=%s, @Year=%s",
+            (embedding_vector_literal, semester, year)
+        )
+        rows = cursor.fetchall()
         conn.close()
 
-        if not chunks:
+        if not rows:
             return {"data": []}
 
-        best_per_course = {}
-        for chunk in chunks:
-            course_id = chunk["CourseID"]
-            chunk_embedding = json.loads(chunk["Embedding"])
-            similarity = _cosine_similarity(query_embedding, chunk_embedding)
-
-            existing = best_per_course.get(course_id)
-            if existing is None or similarity > existing["similarity"]:
-                best_per_course[course_id] = {
+        courses_by_id = {}
+        for row in rows:
+            course_id = row["CourseID"]
+            course = courses_by_id.get(course_id)
+            if course is None:
+                distance = float(row["Distance"])
+                course = {
                     "CourseID": course_id,
-                    "SubjectCode": chunk["SubjectCode"],
-                    "CourseNumber": chunk["CourseNumber"],
-                    "Title": chunk["Title"],
-                    "CourseDescription": chunk["CourseDescription"],
-                    "Credits": float(chunk["Credits"]) if chunk["Credits"] is not None else None,
-                    "similarity": similarity,
-                    "best_matching_chunk": chunk["ChunkText"],
+                    "SubjectCode": row["SubjectCode"],
+                    "CourseNumber": row["CourseNumber"],
+                    "Title": row["Title"],
+                    "CourseDescription": row["CourseDescription"],
+                    "Credits": float(row["Credits"]) if row.get("Credits") is not None else None,
+                    "similarity": round(1.0 - distance, 4),
+                    "best_matching_chunk": row["Evidence"],
+                    "sections": [],
                 }
+                courses_by_id[course_id] = course
 
-        ranked = sorted(best_per_course.values(), key=lambda x: x["similarity"], reverse=True)
-        top = ranked[:top_k]
+            if row.get("SectionID") is not None:
+                course["sections"].append({
+                    "SectionID": row["SectionID"],
+                    "SectionSemester": row["SectionSemester"],
+                    "SectionYear": row["SectionYear"],
+                    "RemainingOpenings": row["RemainingOpenings"],
+                    "CRN": row["CRN"],
+                    "SectionNumber": row["SectionNumber"],
+                })
 
-        for item in top:
-            item["similarity"] = round(item["similarity"], 4)
-
-        return {"data": top}
+        ranked = sorted(courses_by_id.values(), key=lambda c: c["similarity"], reverse=True)
+        return {"data": ranked[:top_k]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
