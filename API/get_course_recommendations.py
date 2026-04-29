@@ -12,7 +12,6 @@ load_dotenv()
 router = APIRouter()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-_openai_client = OpenAI()
 
 
 @router.get("/course-recommendations")
@@ -23,7 +22,8 @@ def get_course_recommendations(
     year: int | None = Query(None, description="Optional year filter (e.g. 2026)")
 ):
     try:
-        embedding_response = _openai_client.embeddings.create(
+        openai_client = OpenAI()
+        embedding_response = openai_client.embeddings.create(
             input=job_description,
             model=EMBEDDING_MODEL
         )
