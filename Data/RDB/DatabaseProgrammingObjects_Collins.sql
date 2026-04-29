@@ -442,3 +442,11 @@ BEGIN
       AND (@Year IS NULL OR S.SectionYear = @Year);
 END
 GO
+
+CREATE OR ALTER PROCEDURE procGetAllJobs
+AS
+BEGIN
+    SELECT JobTitle, JobDescription
+    FROM Job;
+END
+GO
