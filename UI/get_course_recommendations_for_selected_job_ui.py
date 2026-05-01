@@ -1,41 +1,64 @@
 import streamlit as st
 import requests
 
-# API endpoint
-API_URL = "https://mist460-api-collins-c3dhhkhsapcse8dh.canadacentral-01.azurewebsites.net/api/course-recommendations"
+API_BASE = "https://mist460-api-collins-c3dhhkhsapcse8dh.canadacentral-01.azurewebsites.net/api"
+RECOMMENDATIONS_URL = f"{API_BASE}/course-recommendations"
+JOBS_URL = f"{API_BASE}/jobs"
 
 st.title("Course Recommendations for a Job")
-st.write("Paste a job description to get the top 5 most relevant courses from the catalog.")
+st.write("Pick a job from the catalog to see the top 5 most relevant courses.")
 
-job_description = st.text_area(
-    "Job Description",
-    height=220,
-    placeholder="e.g. Data engineer building ETL pipelines in Python and SQL on Azure. "
-                "Experience with machine learning, relational databases, and cloud data warehouses."
-)
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_jobs():
+    response = requests.get(JOBS_URL, timeout=30)
+    response.raise_for_status()
+    return response.json().get("data", [])
+
+
+try:
+    jobs = load_jobs()
+except Exception as e:
+    st.error(f"Failed to load jobs: {e}")
+    st.stop()
+
+if not jobs:
+    st.info("No jobs available in the catalog.")
+    st.stop()
+
+job_titles = [job.get("JobTitle", "") for job in jobs]
+selected_title = st.selectbox("Job", options=job_titles, index=0)
+
+selected_job = next((j for j in jobs if j.get("JobTitle") == selected_title), None)
+selected_description = (selected_job or {}).get("JobDescription", "") or ""
+
+with st.expander("Job description", expanded=False):
+    st.write(selected_description or "_No description available._")
 
 if st.button("Recommend Courses"):
-    if not job_description or not job_description.strip():
-        st.warning("Please enter a job description.")
+    if not selected_description.strip():
+        st.warning("This job has no description to match against.")
     else:
         try:
             with st.spinner("Embedding job description and scoring courses..."):
                 response = requests.get(
-                    API_URL,
-                    params={"job_description": job_description, "top_k": 5},
-                    timeout=60
+                    RECOMMENDATIONS_URL,
+                    params={"job_description": selected_description, "top_k": 5},
+                    timeout=60,
                 )
 
-            if response.status_code == 200:
+            if response.status_code != 200:
+                st.error(f"Error {response.status_code}: {response.text}")
+            else:
                 data = response.json().get("data", [])
 
                 if not data:
                     st.info("No course recommendations found.")
                 else:
-                    st.success(f"Top {len(data)} matching courses:")
+                    st.success(f"Top {len(data)} matching courses for {selected_title}:")
                     for rank, course in enumerate(data, start=1):
                         header = (
-                            f"#{rank} — {course.get('SubjectCode', '')} {course.get('CourseNumber', '')}: "
+                            f"#{rank} - {course.get('SubjectCode', '')} {course.get('CourseNumber', '')}: "
                             f"{course.get('Title', '')}  (similarity: {course.get('similarity', 0):.3f})"
                         )
                         with st.expander(header, expanded=(rank == 1)):
@@ -45,8 +68,6 @@ if st.button("Recommend Courses"):
                             if best_chunk:
                                 st.caption("Best matching chunk from the course description:")
                                 st.markdown(f"> {best_chunk}")
-            else:
-                st.error(f"Error {response.status_code}: {response.text}")
 
         except Exception as e:
-            st.error(f"Failed to connect to API: {str(e)}")
+            st.error(f"Failed to connect to API: {e}")
